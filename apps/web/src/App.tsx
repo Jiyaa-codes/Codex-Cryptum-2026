@@ -87,7 +87,7 @@ export function App({ children }: { children: ReactNode }) {
         </nav>
       </header>
       <main id="main" tabIndex={-1}>
-        {loading ? <div className="loading-page"><span className="loader" /><p>Opening the vault…</p></div>
+        {["/", "/join", "/briefing", "/organizer"].includes(pathname) ? children : loading ? <div className="loading-page"><span className="loader" /><p>Opening the vault…</p></div>
           : error ? <div className="page"><h1>Connection interrupted</h1><ErrorNotice message={error} retry={load} /></div> : children}
       </main>
       <output className={`toast ${toast ? "visible" : ""}`} aria-live="polite">{toast && <><CheckCircle2 size={18} /><span>{toast}</span></>}</output>

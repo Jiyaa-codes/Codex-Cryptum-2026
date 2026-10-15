@@ -8,6 +8,7 @@ import { equalSecret, flagFor } from "./security";
 import { runChallengeModel } from "./llm";
 import { challengeConfig } from "./challenge-config";
 import { snapshot } from "./session";
+import { requireOpenEvent } from "./event";
 
 type Tx = Parameters<Parameters<ReturnType<typeof getDb>["transaction"]>[0]>[0];
 
@@ -46,6 +47,15 @@ export async function sendMessage(teamId: string, id: number, content: string) {
   if (metadata.interaction !== "chat") throw new HttpError(409, "This challenge does not support chat");
   const reservation = await getDb().transaction(async (tx) => {
     await lock(tx, `chat:${teamId}`);
+    // Serialize admission across app replicas, then release before inference.
+    await lock(tx, "chat:admission");
+    const event = await requireOpenEvent(tx);
+    const [capacity] = await tx.select({ count: count() }).from(chatOperations).where(and(
+      eq(chatOperations.status, "pending"), gt(chatOperations.expiresAt, new Date()),
+    ));
+    if ((capacity?.count ?? 0) >= 8) throw new HttpError(429, "The model is busy. Try again shortly.");
+    const [usage] = await tx.select({ count: count() }).from(chatOperations).where(eq(chatOperations.teamId, teamId));
+    if ((usage?.count ?? 0) >= event.teamChatLimit) throw new HttpError(429, "Your team's competition chat budget is exhausted.");
     await assertNoPendingChat(tx, teamId);
     const challenge = await activeChallenge(tx, id);
     const [recent] = await tx.select({ count: count() }).from(chatOperations).where(and(
@@ -109,6 +119,7 @@ export async function resetConversation(teamId: string, id: number) {
 export async function submitFlag(teamId: string, id: number, submitted: string) {
   const status = await getDb().transaction(async (tx) => {
     await lock(tx, `submit:${teamId}`);
+    await requireOpenEvent(tx);
     const challenge = await activeChallenge(tx, id);
     const { metadata } = challengeConfig(id);
     if (metadata.completionMethod !== "flag") throw new HttpError(409, "Verify this challenge through its sandbox completion endpoint");

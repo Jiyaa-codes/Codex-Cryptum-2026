@@ -8,11 +8,11 @@ vi.mock("./better-auth", () => ({
   requireGoogleUser: async (headers: Headers) => {
     const id = headers.get("x-test-google-user");
     if (!id) throw Object.assign(new Error("Google login required"), { status: 401 });
-    return { id };
+    return { id, email: `${id}@example.com`, emailVerified: true };
   },
 }));
 
-import { getDb, closeDb, teams, sessions, messages, submissions, solves, sandboxTeams, exploitEvents, chatOperations } from "@cryptum/db";
+import { getDb, closeDb, teams, sessions, messages, submissions, solves, sandboxTeams, exploitEvents, chatOperations, eventSettings, organizerAudit, challenges } from "@cryptum/db";
 import { and, eq, sql } from "drizzle-orm";
 import { POST as join, GET as session } from "../app/api/session/route";
 import { POST as submit } from "../app/api/challenges/[id]/submissions/route";
@@ -22,6 +22,7 @@ import { PATCH as patch } from "../app/api/challenge/leaderboard/teams/[id]/rout
 import { POST as complete } from "../app/api/challenge/leaderboard/complete/route";
 import { officialLeaderboard } from "./challenges";
 import { flagFor } from "./security";
+import { POST as organize, GET as organizerDashboard } from "../app/api/organizer/route";
 
 const enabled = process.env.CRYPTUM_RUN_DATABASE_TESTS === "1";
 const origin = "https://cryptum-integration.example";
@@ -207,5 +208,36 @@ describe.skipIf(!enabled)("PostgreSQL route integration", () => {
     expect(attempts.filter((operation) => operation.status === "failed")).toHaveLength(1);
     fetcher.mockResolvedValue(completion("Recovered reply."));
     expect((await chat(request("challenges/1/messages", "POST", { content: "retry" }), id("1"))).status).toBe(200);
+  });
+
+  it("enforces organizer access, event pause, persistent chat budgets, and code rotation", async () => {
+    vi.stubEnv("ORGANIZER_EMAILS", `${userId}@example.com`);
+    expect((await organizerDashboard(request("organizer", "GET", {}, "ordinary-user"))).status).toBe(403);
+    const [before] = await getDb().select().from(eventSettings).where(eq(eventSettings.id, 1));
+    const [challengeBefore] = await getDb().select().from(challenges).where(eq(challenges.id, 7));
+    const nextCode = "rotated-integration-access-code";
+    try {
+      const event = { action: "event", startsAt: null, endsAt: null, paused: true, teamChatLimit: 1 };
+      expect((await organize(request("organizer", "POST", event))).status).toBe(200);
+      expect((await chat(request("challenges/7/messages", "POST", { content: "paused" }), id("7"))).status).toBe(403);
+      expect((await submit(request("challenges/7/submissions", "POST", { flag: flagFor(teamId, 7) }), id("7"))).status).toBe(403);
+      expect((await complete(request("challenge/leaderboard/complete"))).status).toBe(403);
+      expect((await organize(request("organizer", "POST", { ...event, paused: false }))).status).toBe(200);
+      expect((await chat(request("challenges/7/messages", "POST", { content: "over budget" }), id("7"))).status).toBe(429);
+      expect((await organize(request("organizer", "POST", { action: "challenge", id: 7, active: false }))).status).toBe(200);
+      expect((await submit(request("challenges/7/submissions", "POST", { flag: flagFor(teamId, 7) }), id("7"))).status).toBe(404);
+      expect((await organize(request("organizer", "POST", { action: "rotateCode", teamId, accessCode: nextCode }))).status).toBe(200);
+      expect(await (await session(request("session", "GET"))).json()).toBeNull();
+      expect((await join(request("session", "POST", { teamName: name, accessCode }))).status).toBe(403);
+      expect((await join(request("session", "POST", { teamName: name, accessCode: nextCode }))).status).toBe(200);
+      const audit = await getDb().select().from(organizerAudit).where(eq(organizerAudit.actorId, userId));
+      expect(audit.some(row => row.action === "rotateCode")).toBe(true);
+      expect(JSON.stringify(audit)).not.toContain(nextCode);
+    } finally {
+      if (before) await getDb().update(eventSettings).set(before).where(eq(eventSettings.id, 1));
+      else await getDb().delete(eventSettings).where(eq(eventSettings.id, 1));
+      if (challengeBefore) await getDb().update(challenges).set({ active: challengeBefore.active }).where(eq(challenges.id, 7));
+      await getDb().delete(organizerAudit).where(eq(organizerAudit.actorId, userId));
+    }
   });
 });

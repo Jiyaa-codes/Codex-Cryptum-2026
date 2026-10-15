@@ -14,3 +14,4 @@ coverage/
 .pnpm-store/
 *.pem
 *.key
+.local-tools/

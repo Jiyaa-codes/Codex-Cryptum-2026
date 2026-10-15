@@ -63,16 +63,18 @@ export async function joinTeam(request: Request, teamName: string, accessCode: s
   const user = await requireGoogleUser(request.headers);
   joinLimit(user.id);
   const db = getDb();
-  const [team] = await db.select().from(teams).where(eq(teams.name, teamName)).limit(1);
-  const valid = await verifyAccessCode(accessCode, team?.accessCodeHash ?? "");
-  if (!team || !valid) throw new HttpError(403, "Invalid team credentials");
   const token = newToken();
-  await db.transaction(async (tx) => {
+  const teamId = await db.transaction(async (tx) => {
+    // Serialize joins with organizer code rotation and session revocation.
+    const [team] = await tx.select().from(teams).where(eq(teams.name, teamName)).limit(1).for("update");
+    const valid = await verifyAccessCode(accessCode, team?.accessCodeHash ?? "");
+    if (!team || !valid) throw new HttpError(403, "Invalid team credentials");
     // Rotating a team cookie cannot revoke another Google user's team session.
     await tx.delete(sessions).where(and(eq(sessions.userId, user.id), eq(sessions.teamId, team.id)));
     await tx.insert(sessions).values({ userId: user.id, teamId: team.id, tokenHash: digest(token), expiresAt: new Date(Date.now() + SESSION_SECONDS * 1000) });
+    return team.id;
   });
-  return { token, teamId: team.id };
+  return { token, teamId };
 }
 
 export async function leaveTeam(request: Request): Promise<void> {

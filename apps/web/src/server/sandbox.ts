@@ -5,6 +5,7 @@ import { HttpError } from "./http";
 import { lock } from "./challenges";
 import { equalSecret } from "./security";
 import { sandboxChallengeId } from "./challenge-config";
+import { requireOpenEvent } from "./event";
 
 const SCOPE = "challenge-sandbox";
 const SEEDS = [
@@ -40,6 +41,7 @@ export async function completeSandbox(teamId: string) {
   const challengeId = sandboxChallengeId();
   return getDb().transaction(async (tx) => {
     await lock(tx, "sandbox:leaderboard");
+    await requireOpenEvent(tx);
     const [already] = await tx.select().from(solves).where(and(eq(solves.teamId, teamId), eq(solves.challengeId, challengeId))).limit(1);
     if (already) return { completed: true, points_awarded: 0 };
     const [challenge] = await tx.select().from(challenges).where(and(eq(challenges.id, challengeId), eq(challenges.active, true))).limit(1);

@@ -104,6 +104,25 @@ export const exploitEvents = pgTable("exploit_events", {
 }, (table) => [index("exploit_events_actor_idx").on(table.actorTeamId)]);
 
 export type Team = typeof teams.$inferSelect;
+export const eventSettings = pgTable("event_settings", {
+  id: integer("id").primaryKey().default(1),
+  startsAt: timestamp("starts_at", { withTimezone: true }),
+  endsAt: timestamp("ends_at", { withTimezone: true }),
+  paused: boolean("paused").notNull().default(false),
+  teamChatLimit: integer("team_chat_limit").notNull().default(500),
+}, (table) => [
+  check("event_singleton", sql`${table.id} = 1`),
+  check("event_dates_valid", sql`${table.endsAt} IS NULL OR ${table.startsAt} IS NULL OR ${table.endsAt} > ${table.startsAt}`),
+  check("event_chat_limit_positive", sql`${table.teamChatLimit} > 0`),
+]);
+
+export const organizerAudit = pgTable("organizer_audit", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  actorId: text("actor_id").notNull(),
+  action: text("action").notNull(),
+  targetId: text("target_id").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
 export type NewTeam = typeof teams.$inferInsert;
 export type Session = typeof sessions.$inferSelect;
 export type NewSession = typeof sessions.$inferInsert;

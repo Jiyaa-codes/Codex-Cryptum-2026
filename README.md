@@ -53,6 +53,8 @@ packages/db          Drizzle tables, migrations, development seed
 
 See [docs/challenges.md](docs/challenges.md) to understand or add a challenge. [docs/integration.md](docs/integration.md) lists the original contributions. Component and font credits are in [apps/web/THIRD_PARTY.md](apps/web/THIRD_PARTY.md).
 
+Organizer controls are at **/organizer**. See [organizer setup](docs/organizer.md) for Google access, team controls, event scheduling, and chat budgets. On Windows, `powershell -ExecutionPolicy Bypass -File .\start.ps1` starts the installed Next.js app directly.
+
 ## Checks
 
 ```sh
