@@ -1,13 +1,13 @@
 # Organizer controls
 
-The app uses Next.js, PostgreSQL, Better Auth, and Drizzle.
+The app uses Next.js, PostgreSQL, Better Auth, and Drizzle. Levels 7–8 additionally use the upstream private Python classifier service; see the root README for its setup.
 
 ## Local setup
 
 1. Fill in the ignored root `.env`: `DATABASE_URL`, Google OAuth client ID/secret, and the generated authentication/flag secrets. Use your development database, not an event database, for seed commands.
 2. Set `BETTER_AUTH_URL=http://localhost:3000` and register `http://localhost:3000/api/auth/callback/google` with Google.
 3. Add authorized Google email addresses to `ORGANIZER_EMAILS`, separated by commas. They must have verified emails in Better Auth. An empty list denies all organizer access. The organizer bearer token for sandbox reset does not grant access to this dashboard.
-4. Apply migrations with `pnpm db:migrate`, then seed development data with `pnpm db:seed`. Seeding rotates the demo team's code to `DEV_TEAM_ACCESS_CODE`; it preserves existing official progress.
+4. Apply migrations with `pnpm db:migrate`, then synchronize challenge metadata with `pnpm db:seed`. Participants can create teams or join by code. The seed no longer creates a demo team or rotates codes.
 5. Run `pnpm dev`, or on Windows run `powershell -ExecutionPolicy Bypass -File .\start.ps1`. The Windows launcher uses the installed Next.js CLI directly.
 6. Open `http://localhost:3000/organizer` and sign in. Restart the development server after editing root `.env`.
 
@@ -26,6 +26,10 @@ Chat admission is shared across app replicas through PostgreSQL: at most eight u
 
 ## Remaining event infrastructure
 
-Permanent team membership and individual member removal, organizer MFA, exact provider token/cost accounting, a durable inference queue, leaderboard pagination, isolated sandbox hosting/credentials, monitoring, backups with restore drills, and load/deployment verification still require implementation or infrastructure configuration.
+Individual member removal, organizer MFA, exact provider token/cost accounting, a durable inference queue, leaderboard pagination, isolated sandbox hosting/credentials, monitoring, backups with restore drills, and load/deployment verification still require implementation or infrastructure configuration.
+
+## Migration compatibility
+
+Organizer tables now use migration `0008_organizer_controls`, after the upstream team migrations. For a development database that already applied the former local `0003_sweet_wallflower`, the migration command recognizes its exact SQL hash and transactionally applies missing team migrations 0003–0006. It preserves the old ledger entry and organizer data; migration 0008 accepts the existing organizer tables. Fresh databases follow the normal migration sequence. Do not reset the migration ledger or run the old migration separately.
 
 Never run database integration tests against a live event database. They alter sandbox state temporarily. Use a disposable migrated and seeded PostgreSQL database with `CRYPTUM_RUN_DATABASE_TESTS=1`.

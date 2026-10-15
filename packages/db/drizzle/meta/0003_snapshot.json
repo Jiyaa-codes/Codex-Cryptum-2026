@@ -1,5 +1,5 @@
 {
-  "id": "f15d4854-7435-4723-a5a2-b5a7cc5ca97c",
+  "id": "454adf76-c34e-4881-93b5-96ef882f8316",
   "prevId": "ed12ef1c-205c-4dc7-a6c3-08d121fa6793",
   "version": "7",
   "dialect": "postgresql",
@@ -225,65 +225,6 @@
       },
       "isRLSEnabled": false
     },
-    "public.event_settings": {
-      "name": "event_settings",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "integer",
-          "primaryKey": true,
-          "notNull": true,
-          "default": 1
-        },
-        "starts_at": {
-          "name": "starts_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "ends_at": {
-          "name": "ends_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "paused": {
-          "name": "paused",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "team_chat_limit": {
-          "name": "team_chat_limit",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 500
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "event_singleton": {
-          "name": "event_singleton",
-          "value": "\"event_settings\".\"id\" = 1"
-        },
-        "event_dates_valid": {
-          "name": "event_dates_valid",
-          "value": "\"event_settings\".\"ends_at\" IS NULL OR \"event_settings\".\"starts_at\" IS NULL OR \"event_settings\".\"ends_at\" > \"event_settings\".\"starts_at\""
-        },
-        "event_chat_limit_positive": {
-          "name": "event_chat_limit_positive",
-          "value": "\"event_settings\".\"team_chat_limit\" > 0"
-        }
-      },
-      "isRLSEnabled": false
-    },
     "public.exploit_events": {
       "name": "exploit_events",
       "schema": "",
@@ -475,51 +416,6 @@
           "value": "\"messages\".\"role\" IN ('user', 'assistant')"
         }
       },
-      "isRLSEnabled": false
-    },
-    "public.organizer_audit": {
-      "name": "organizer_audit",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "actor_id": {
-          "name": "actor_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "action": {
-          "name": "action",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "target_id": {
-          "name": "target_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
       "isRLSEnabled": false
     },
     "public.sandbox_teams": {
@@ -830,6 +726,12 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
@@ -841,6 +743,13 @@
           "nullsNotDistinct": false,
           "columns": [
             "name"
+          ]
+        },
+        "teams_created_by_unique": {
+          "name": "teams_created_by_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "created_by"
           ]
         }
       },

@@ -1,10 +1,10 @@
 import "server-only";
-import { randomBytes, scryptSync } from "node:crypto";
-import { challenges, chatOperations, eventSettings, getDb, organizerAudit, sessions, teams } from "@cryptum/db";
+import { accessCodeLookup, normalizeAccessCode, challenges, chatOperations, eventSettings, getDb, organizerAudit, sessions, teams } from "@cryptum/db";
 import { asc, desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { requireGoogleUser } from "./better-auth";
 import { HttpError } from "./http";
+import { encryptAccessCode, hashAccessCode } from "./security";
 
 export async function requireOrganizerUser(headers: Headers) {
   const user = await requireGoogleUser(headers);
@@ -34,10 +34,12 @@ export async function organizerSnapshot() {
 }
 
 export async function applyOrganizerAction(actorId: string, input: z.infer<typeof organizerAction>) {
-  const hash = "accessCode" in input ? (() => {
-    const salt = randomBytes(16).toString("hex");
-    return `${salt}:${scryptSync(input.accessCode, salt, 64).toString("hex")}`;
-  })() : "";
+  const code = "accessCode" in input ? normalizeAccessCode(input.accessCode) : "";
+  const credentials = code ? {
+    accessCodeHash: await hashAccessCode(code),
+    accessCodeEncrypted: encryptAccessCode(code),
+    accessCodeLookup: accessCodeLookup(code),
+  } : null;
   await getDb().transaction(async tx => {
     let targetId = "event";
     switch (input.action) {
@@ -48,7 +50,8 @@ export async function applyOrganizerAction(actorId: string, input: z.infer<typeo
         break;
       }
       case "createTeam": {
-        const [team] = await tx.insert(teams).values({ name: input.name, accessCodeHash: hash }).onConflictDoNothing().returning({ id: teams.id });
+        if (!credentials) throw new HttpError(400, "Access code required");
+        const [team] = await tx.insert(teams).values({ name: input.name, ...credentials }).onConflictDoNothing().returning({ id: teams.id });
         if (!team) throw new HttpError(409, "A team with this name already exists");
         targetId = team.id;
         break;
@@ -58,7 +61,10 @@ export async function applyOrganizerAction(actorId: string, input: z.infer<typeo
         targetId = input.teamId;
         const [team] = await tx.select({ id: teams.id }).from(teams).where(eq(teams.id, input.teamId)).for("update");
         if (!team) throw new HttpError(404, "Team not found");
-        if (input.action === "rotateCode") await tx.update(teams).set({ accessCodeHash: hash }).where(eq(teams.id, input.teamId));
+        if (input.action === "rotateCode") {
+          if (!credentials) throw new HttpError(400, "Access code required");
+          await tx.update(teams).set(credentials).where(eq(teams.id, input.teamId));
+        }
         await tx.delete(sessions).where(eq(sessions.teamId, input.teamId));
         break;
       }
