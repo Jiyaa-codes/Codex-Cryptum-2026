@@ -3,7 +3,7 @@
 ## Participant flow
 
 - **Levels 1–9:** send prompts, inspect responses, recover your team's flag, submit it.
-- **Level 10:** edit the isolated leaderboard and verify the exploit. No chat or flag submission.
+- **Level 10:** follow the earlier hints, inspect network requests, discover the isolated practice leaderboard API, and verify the exploit. There is no embedded leaderboard, target selector, or score-edit form. No chat or flag submission.
 
 The API tells the UI which interface to show through `interaction` and `completionMethod`. Official points come from unique server-created solve records, never from sandbox scores.
 
@@ -39,18 +39,24 @@ control; OpenAI prompts do not. See `security/DEPLOYMENT.md` for the private bri
 
 | Level | Prompt | Input guard | Output guard |
 | --- | --- | --- | --- |
-| 1 | Open | None | None |
-| 2 | Private | None | None |
-| 3 | Hardened | None | None |
-| 4 | Hardened | Keyword | None |
-| 5 | Hardened | None | Exact flag match |
-| 6 | Hardened | None | Encoding-aware, limited inspection window |
-| 7 | Hardened | Classifier | None |
-| 8 | Hardened | Classifier | Classifier |
-| 9 | Hardened | Conversation classifier | Classifier |
+| 1 | Public decoy + protected verification flag | None | None |
+| 2 | Private + public decoy | None | None |
+| 3 | Structured notes + public decoy | None | None |
+| 4 | Private | Keyword | None |
+| 5 | Private | None | Exact flag match |
+| 6 | Private | None | Encoding-aware, limited inspection window |
+| 7 | Private | Classifier | None |
+| 8 | Private | Classifier | Classifier |
+| 9 | Vault | Blocklist | Conversation judge |
 | 10 | No model | Sandbox exploit | Server verification |
 
 These weaknesses are intentional CTF mechanics. Do not use them to protect real secrets.
+
+Levels 1–3 include repeatable, team-specific public decoys in the model's instructions. Ordinary flag requests are directed to the decoy; only the separate verification flag earns points. The early levels do not replace leaked real flags in the response: extracting one through prompt injection remains a valid solve. The model is not asked to detect whether a message "counts as injection." Player claims that the game is over no longer authorize disclosure in any private policy. Level 3 no longer automatically copies its real flag into notes when asked about it. Prompt compliance is probabilistic; use the opt-in live early-level probe to check direct requests against your configured provider.
+
+Common organizer/admin/developer impersonation and fake system/developer role markers are rejected before model or classifier calls. Earlier user role claims also cannot authorize a later disclosure request. Every prompt policy receives the same authority-boundary instructions. This blocks recognized impersonation patterns; it does not claim that arbitrary paraphrases can never bypass an LLM. Actual organizer permissions are checked through Google sessions outside chat.
+
+Each layer has an expandable hint. Levels 1–9 include a final-trail clue about displayed versus authoritative data, record identity, request fields, validation, and ownership. Level 10 makes one practice-standings request that participants can discover in the browser's network inspector, but renders none of its rows. The vulnerable PATCH API and server verification remain: promote another, previously non-leading team above the current leader, and verify while that latest recorded target is still first. Official standings are separate and cannot be edited through the practice API.
 
 ## Developer interface
 

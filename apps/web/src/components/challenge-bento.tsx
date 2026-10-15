@@ -46,9 +46,9 @@ export function ChallengeBento({ items }: { items: Challenge[] }) {
           key={c.id}
           name={c.title}
           number={String(c.id).padStart(2, "0")}
-          description={`${c.points} pts · ${c.interaction === "sandbox" ? "Sandbox · Verify exploit" : "Chat · Submit flag"}`}
+          description={`${c.points} pts · ${c.interaction === "sandbox" ? "Investigation · Verify evidence" : "Chat · Submit flag"}`}
           href={`/arena/${c.id}`}
-          cta={session ? (c.interaction === "sandbox" ? "Inspect sandbox" : "Start prompting") : "Sign in to open"}
+          cta={session ? (c.interaction === "sandbox" ? "Follow the trace" : "Start prompting") : "Sign in to open"}
           captured={session?.solved.includes(c.id)}
           background={<CardArt id={c.id} />}
           className={`bento-level-${c.id}`}

@@ -27,6 +27,7 @@ import { PATCH as patch } from "../app/api/challenge/leaderboard/teams/[id]/rout
 import { POST as complete } from "../app/api/challenge/leaderboard/complete/route";
 import { flagForChallenge, officialLeaderboard } from "./challenges";
 import { POST as organize, GET as organizerDashboard } from "../app/api/organizer/route";
+import { decoyFlagFor } from "./challenge-decoy";
 
 const enabled = process.env.CRYPTUM_RUN_DATABASE_TESTS === "1";
 const origin = "https://cryptum-integration.example";
@@ -207,6 +208,10 @@ describe.skipIf(!enabled)("PostgreSQL route integration", () => {
   });
 
   it("accepts only the current team's HMAC flag and awards one immutable solve", async () => {
+    const decoy = decoyFlagFor(flagForChallenge(teamId, 2), 2);
+    const rejected = await submit(request("challenges/2/submissions", "POST", { flag: decoy }), id("2"));
+    expect((await rejected.json()).status).toBe("incorrect");
+    expect(await getDb().select().from(solves).where(eq(solves.teamId, teamId))).toHaveLength(0);
     const wrong = await submit(request("challenges/5/submissions", "POST", { flag: flagForChallenge(otherId, 5) }), id("5"));
     expect((await wrong.json()).status).toBe("incorrect");
     const first = await submit(request("challenges/5/submissions", "POST", { flag: flagForChallenge(teamId, 5) }), id("5"));

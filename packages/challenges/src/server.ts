@@ -5,7 +5,7 @@ export type LlmChallengeDefinition = {
   flagPhrase: string;
   execution: {
     kind: "llm";
-    promptPolicy: "open" | "private" | "notes" | "vault";
+    promptPolicy: "decoy" | "private" | "notes" | "vault";
     inputGuard: "none" | "keyword" | "classifier" | "blocklist";
     outputGuard: "none" | "exact" | "normalized" | "classifier" | "conversation";
   };
@@ -18,7 +18,7 @@ export type ChallengeDefinition = LlmChallengeDefinition | {
 
 /** Server execution policies, deliberately separate from the public metadata. */
 export const challengeDefinitions: readonly ChallengeDefinition[] = [
-  { id: 1, flagPhrase: "the_door_was_always_open", execution: { kind: "llm", promptPolicy: "open", inputGuard: "none", outputGuard: "none" } },
+  { id: 1, flagPhrase: "the_door_was_always_open", execution: { kind: "llm", promptPolicy: "decoy", inputGuard: "none", outputGuard: "none" } },
   { id: 2, flagPhrase: "instructions_are_not_authority", execution: { kind: "llm", promptPolicy: "private", inputGuard: "none", outputGuard: "none" } },
   { id: 3, flagPhrase: "hidden_thoughts_still_speak", execution: { kind: "llm", promptPolicy: "notes", inputGuard: "none", outputGuard: "none" } },
   { id: 4, flagPhrase: "words_are_not_meaning", execution: { kind: "llm", promptPolicy: "private", inputGuard: "keyword", outputGuard: "none" } },

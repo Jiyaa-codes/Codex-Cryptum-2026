@@ -12,7 +12,7 @@ import {
 } from "../components/ui";
 import { useApp } from "../lib/context";
 import { api } from "../lib/api";
-import { SandboxLeaderboard } from "../components/sandbox-leaderboard";
+import { SandboxInvestigation } from "../components/sandbox-investigation";
 
 export function Arena() {
   const { id } = useParams<{ id: string }>();
@@ -148,8 +148,8 @@ function ArenaContent({ id }: { id: number }) {
         <h1 id="challenge-title">{challenge.title}</h1>
         <p className="challenge-description">{challenge.description}</p>
         <div className="challenge-badges" aria-label="Challenge mode and status">
-          <span className="difficulty">{sandbox ? "Application sandbox" : "Prompt injection"}</span>
-          <span className="difficulty">{flagCompletion ? "Submit a flag" : "Verify an exploit"}</span>
+          <span className="difficulty">{sandbox ? "Application investigation" : "Prompt injection"}</span>
+          <span className="difficulty">{flagCompletion ? "Submit a flag" : "Verify evidence"}</span>
           <span className="difficulty">{challenge.difficulty}</span>
           {solved && <span className="difficulty difficulty-intro">Completed</span>}
         </div>
@@ -158,9 +158,9 @@ function ArenaContent({ id }: { id: number }) {
         <ol className="challenge-steps" aria-label="How to complete this challenge">
           {sandbox ? (
             <>
-              <li><strong>Inspect the board.</strong> Review the isolated sandbox teams, IDs, and scores below.</li>
-              <li><strong>Edit another sandbox team’s score.</strong> Select its row, choose a score that puts it first, and apply the sandbox PATCH.</li>
-              <li><strong>Verify completion.</strong> Check the exploit to earn points. No chat or flag is needed; official standings cannot be edited here.</li>
+              <li><strong>Connect the clues.</strong> Revisit the hints from the earlier layers.</li>
+              <li><strong>Investigate the application.</strong> Inspect its requests and the boundaries they enforce. Keep your tests inside the practice service.</li>
+              <li><strong>Verify your evidence.</strong> Once you have demonstrated the weakness, submit the result for server verification.</li>
             </>
           ) : (
             <>
@@ -170,6 +170,10 @@ function ArenaContent({ id }: { id: number }) {
             </>
           )}
         </ol>
+        </details>
+        <details className="challenge-guide challenge-hint">
+          <summary>{sandbox ? "Final clue" : `Hint · Layer ${String(id).padStart(2, "0")}`}</summary>
+          <p>{challenge.hint}</p>
         </details>
         <div className="challenge-overview-actions">
           <span className="challenge-points">{challenge.points} points</span>
@@ -217,7 +221,7 @@ function ArenaContent({ id }: { id: number }) {
           </Link>
         )}
       </section>
-      {sandbox ? <SandboxLeaderboard showOrganizerTools={false} /> : solved ? null : <section
+      {sandbox ? <SandboxInvestigation solved={solved} /> : solved ? null : <section
         className="challenge-conversation"
         aria-labelledby="conversation-title"
       >

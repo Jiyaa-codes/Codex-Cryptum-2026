@@ -27,12 +27,12 @@ function renderArena(id: number) {
 }
 
 describe("challenge interaction modes", () => {
-  it("renders the sandbox objective and interface without chat or flag controls", () => {
+  it("renders an investigation without handing participants a leaderboard editor", () => {
     const html = renderArena(10);
-    for (const text of ["Inspect the board", "Edit another sandbox team", "Verify completion", "Sandbox leaderboard", "Apply sandbox PATCH", "Target sandbox team ID", "Completed"]) {
+    for (const text of ["Connect the clues", "Investigate the application", "Follow the trace", "Investigation completed", "Final clue", "Completed"]) {
       expect(html).toContain(text);
     }
-    for (const text of ["Enter flag", "Submit flag", "Reset conversation", "Reset sandbox", "Organizer-only", "turns remaining", "<textarea", 'aria-label="Conversation"']) {
+    for (const text of ["Enter flag", "Submit flag", "Reset conversation", "Reset sandbox", "Organizer-only", "Sandbox leaderboard", "Apply sandbox PATCH", "Target sandbox team ID", "Edit sandbox team", "<table", "turns remaining", "<textarea", 'aria-label="Conversation"']) {
       expect(html).not.toContain(text);
     }
   });
@@ -43,6 +43,8 @@ describe("challenge interaction modes", () => {
       expect(html).toContain(text);
     }
     expect(html).not.toContain("Sandbox leaderboard");
+    expect(html).toContain("Hint · Layer 09");
+    expect(html).toContain("Inspect the application.");
   });
 
   it("hides flag entry when reopening a solved chat challenge", () => {
@@ -63,7 +65,7 @@ describe("challenge interaction modes", () => {
   it("labels challenge cards with the matching interaction and completion method", () => {
     const html = renderToStaticMarkup(createElement(AppContext.Provider, { value: state }, createElement(ChallengeBento, { items: challenges })));
     expect(html).toContain("Chat · Submit flag");
-    expect(html).toContain("Sandbox · Verify exploit");
-    expect(html).toContain("Inspect sandbox");
+    expect(html).toContain("Investigation · Verify evidence");
+    expect(html).toContain("Follow the trace");
   });
 });
